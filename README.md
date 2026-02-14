@@ -63,11 +63,3 @@ npm install
 npm start
 ```
 
----
-
-## 🛡️ Security & Privacy Note
-- **API Keys**: The `.env` file containing your private API keys is excluded from git via `.gitignore`. **NEVER commit your `.env` file.**
-- **Stateless Execution**: This application does not use a database. Document text and analysis results exist strictly in-memory during the session and are cleared once the server/process is terminated.
-
----
-*Developed with ❤️ using modern AI and Web Technologies - Feb 2026*
