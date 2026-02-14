@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+backend/target/
+frontend/dist/
+frontend/.angular/
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/venv/
+backend/.venv/
+.env
+backend/.env
+
+# Database (Removed, but for safety)
+*.db
+*.sqlite
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

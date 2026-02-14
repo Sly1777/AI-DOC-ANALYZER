@@ -1,0 +1,166 @@
+<mat-toolbar color="primary" class="glass-effect main-toolbar">
+  <mat-icon class="logo-icon">psychology</mat-icon>
+  <span class="gradient-text" style="--primary-color: #fff; --secondary-color: #e0e7ff;">SmartDoc AI</span>
+  <span class="spacer"></span>
+</mat-toolbar>
+
+<div class="main-container">
+  <!-- Hero Section -->
+  <header class="hero-section">
+    <h1 class="gradient-text">Transform Documents into Insights</h1>
+    <p>Analyze up to 5 documents simultaneously (Max 10MB each).</p>
+  </header>
+
+  <div class="analyzer-grid">
+    <!-- Left Column: Upload & QA -->
+    <div class="left-panel">
+      <!-- Upload Card -->
+      <mat-card class="premium-card upload-card">
+        <mat-card-header>
+          <mat-card-title>Analyze New Document</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Tone Selection -->
+          <mat-form-field appearance="outline" class="full-width mb-2">
+            <mat-label>Analysis Tone</mat-label>
+            <mat-select [(value)]="selectedTone">
+              <mat-option *ngFor="let tone of tones" [value]="tone.value">
+                {{ tone.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Added Drag and Drop Bindings -->
+          <div class="drop-zone" (click)="fileInput.click()" (dragover)="handleDragOver($event)"
+            (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)" [class.active]="isDragging">
+            <mat-icon class="upload-icon">cloud_upload</mat-icon>
+            <p>Drag & drop files or <span>browse</span></p>
+            <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.docx,.rtf,.xlsx,.xls"
+              style="display: none" multiple>
+          </div>
+
+          <!-- Selected Files Chips/List -->
+          <div class="selected-files-list mt-2" *ngIf="selectedFiles.length > 0">
+            <div *ngFor="let file of selectedFiles; let i = index" class="file-chip glass-effect">
+              <mat-icon>description</mat-icon>
+              <span class="file-name">{{ file.name }}</span>
+              <button mat-icon-button (click)="removeFile(i)" [disabled]="analyzing">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sequential Progress Indicator -->
+          <div class="progress-info mt-3" *ngIf="analyzing">
+            <div class="progress-header">
+              <p class="status-text">
+                <mat-spinner diameter="20"></mat-spinner>
+                <span *ngIf="!analyzingSummary">
+                  Processing: <strong>{{ currentProcessingFile }}</strong>
+                  ({{ processedCount + 1 }}/{{ selectedFiles.length }})
+                </span>
+                <span *ngIf="analyzingSummary">
+                  Generating Final Summary... ({{ processedCount }}/{{ selectedFiles.length }})
+                </span>
+              </p>
+              <button mat-button color="warn" (click)="cancelAnalysis()">
+                <mat-icon>stop</mat-icon> CANCEL
+              </button>
+            </div>
+            <mat-progress-bar mode="determinate"
+              [value]="(processedCount / selectedFiles.length) * 100"></mat-progress-bar>
+          </div>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-stroked-button color="warn" *ngIf="selectedFiles.length > 0"
+            (click)="selectedFiles = []; result = null;" [disabled]="analyzing">
+            CLEAR ALL
+          </button>
+          <button mat-flat-button color="accent" [disabled]="selectedFiles.length === 0 || analyzing"
+            (click)="analyze()">
+            <mat-icon>rocket_launch</mat-icon> {{ analyzing ? 'ANALYZING...' : 'ANALYZE DOCUMENTS' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <!-- QA Card (Hidden until analyzed) -->
+      <mat-card class="premium-card qa-card" *ngIf="result">
+        <mat-card-header>
+          <mat-card-title>Ask Anything</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Ask a question about your documents...</mat-label>
+            <button mat-icon-button matPrefix (click)="qaFileInput.click()">
+              <mat-icon>attach_file</mat-icon>
+            </button>
+            <input #qaFileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.docx,.rtf,.xlsx,.xls"
+              style="display: none" multiple>
+
+            <input matInput [(ngModel)]="question" (keyup.enter)="askQuestion()">
+            <button mat-icon-button matSuffix (click)="askQuestion()" [disabled]="asking">
+              <mat-icon>send</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <div class="answer-box glass-effect" *ngIf="answer">
+            <mat-icon>auto_awesome</mat-icon>
+            <p>{{ answer }}</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Right Column: Results -->
+    <div class="right-panel" *ngIf="result">
+      <mat-card class="premium-card result-card">
+        <mat-card-header>
+          <div mat-card-avatar class="result-avatar">
+            <mat-icon>description</mat-icon>
+          </div>
+          <mat-card-title>{{ result.filename }}</mat-card-title>
+          <mat-card-subtitle>Analysis Complete</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="summary-section">
+            <div class="section-header">
+              <h3><mat-icon>auto_awesome</mat-icon> AI Summary</h3>
+              <div class="header-actions">
+                <button mat-icon-button color="primary" matTooltip="Export as PDF" (click)="exportPDF()">
+                  <mat-icon>picture_as_pdf</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" matTooltip="Export as TXT" (click)="exportTXT()">
+                  <mat-icon>file_download</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" matTooltip="Copy Summary" (click)="copySummary()">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+                <button mat-icon-button color="primary" matTooltip="Regenerate Summary" (click)="summarize()"
+                  [disabled]="analyzing">
+                  <mat-icon>refresh</mat-icon>
+                </button>
+              </div>
+            </div>
+            <p class="summary-text">{{ result.summary }}</p>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="insights-section mt-3" *ngIf="result.takeaways && result.takeaways.length > 0">
+            <h3><mat-icon>lightbulb</mat-icon> Executive Highlights</h3>
+            <ul class="takeaways-list">
+              <li *ngFor="let takeaway of result.takeaways">
+                <mat-icon>check_circle_outline</mat-icon>
+                <span>{{ takeaway }}</span>
+              </li>
+            </ul>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+
+
+</div>
