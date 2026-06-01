@@ -1,65 +1,100 @@
-# SmartDoc AI - Intelligent Document Analyzer
+# SmartDoc AI
 
-SmartDoc AI is a premium, full-stack application that transforms static documents into interactive insights. Built with **Angular 16** and **FastAPI**, it leverages high-performance **Native Python Parsers** and cutting-edge **AI** (via Groq/Gemini/OpenAI) to perform real-time summarization, executive takeaways, and source-attributed Question & Answering.
+SmartDoc AI converts static documents into searchable, summarized, and source-attributed insights. It pairs a FastAPI + Python backend (document parsing and AI orchestration) with an Angular frontend for a modern interactive experience.
 
-![Angular](https://img.shields.io/badge/Angular-16.2-dd0031?style=flat&logo=angular)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat&logo=fastapi)
-![Python](https://img.shields.io/badge/Python-3.12+-3776ab?style=flat&logo=python)
-![AI](https://img.shields.io/badge/AI-Groq_Gemini_OpenAI-f55036?style=flat)
+## Key highlights
+- Tech: Python (FastAPI) backend, Angular 16 frontend
+- Document formats: PDF, DOCX, RTF, XLSX
+- AI: Pluggable provider (OpenAI/Groq/Gemini) via BYOK (.env)
 
-## 🚀 Key Features
+## Summary
+SmartDoc AI extracts text from documents, generates source-cited summaries, produces five executive takeaways, and answers document-specific questions. It is stateless by design: document contents are kept in memory for each analysis session and are not persisted.
 
-- **📄 Universal Document Parsing**:
-  - Native support for **PDF**, **DOCX**, **RTF**, and **Excel** files.
-  - No external dependencies like Java or Tika required for text extraction.
-- **🧠 Advanced AI Capabilities**:
-  - **Instant Summarization**: Choose between Executive, Detailed, or Simplified tones.
-  - **Source Attribution**: AI automatically cites the source document `[Source: filename.ext]` for every claim.
-  - **Executive Takeaways**: Automatically extracts 5 critical, high-level highlights from your documents.
-  - **Context-Aware Q&A**: Ask complex questions about your documents and get precise, evidence-based answers.
-- **✨ Premium UX/UI**:
-  - Modern "Glassmorphism" design with Angular Material.
-  - **Stateless & Private**: No data is stored in a database. Your documents stay in-memory for the duration of the analysis.
-  - One-click export to **PDF** or **TXT**.
+## Features
+- Parse and extract text from PDF, DOCX, RTF and XLSX files
+- Generate source-cited summaries and extract 5 executive takeaways
+- Context-aware Q&A restricted to the provided document text
+- Minimal architecture — no external document indexing or long-term storage
 
----
+## Architecture Overview
+- Frontend: Angular 16 app (serves UI and calls backend endpoints)
+- Backend: FastAPI service exposing endpoints for upload, summarize, and Q&A
+- AI: Backend calls a configured AI provider using an API key from `.env`
 
-## ⚙️ Setup & Installation
+## Requirements
+- Python 3.12+
+- Node.js 16+ and npm
+- Recommended: create a Python virtual environment for the backend
 
-### 1. Prerequisites
-- **Python 3.12+**
-- **Node.js 16+** & **NPM**
+## Quick start — Backend
+1. Open a terminal and create+activate a virtual environment (recommended):
 
-### 2. Backend Setup (BYOK - Bring Your Own Key)
-The backend runs on port **8081**. This project follows a **BYOK** model; you must provide your own API key for the AI provider (Groq, Gemini, or OpenAI).
-
-**Install Dependencies:**
 ```bash
 cd backend
-pip install -r requirements.txt
+python -m venv .venv
+# Windows
+.\.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
 ```
 
-**Configure Environment:**
-Create a `.env` file in the `backend/` directory:
-```env
+2. Install dependencies and create `.env`:
+
+```bash
+pip install -r requirements.txt
+copy ..\.env.sample .env  # or create .env manually
+```
+
+3. Edit `backend/.env` and set `AI_PROVIDER_KEY` (DO NOT commit this file):
+
+```
 AI_PROVIDER_URL=https://api.groq.com/openai/v1/chat/completions
 AI_PROVIDER_MODEL=llama-3.1-8b-instant
-AI_PROVIDER_KEY=your_api_key_here
-PORT=8081
+AI_PROVIDER_KEY=YOUR_API_KEY_HERE
+DATABASE_URL=sqlite:///./doc_analyzer.db
 ```
 
-**Run the Backend:**
+4. Run the backend (development):
+
 ```bash
 python main.py
+# or using uvicorn
+uvicorn main:app --reload --host 0.0.0.0 --port 8081
 ```
 
-### 3. Frontend Setup
-The frontend runs on port **4200**.
+The backend exposes a health endpoint at `http://127.0.0.1:8081/api/documents/test`.
 
-**Install & Run:**
+## Quick start — Frontend
+1. Install dependencies and start the Angular dev server:
+
 ```bash
 cd frontend
 npm install
 npm start
 ```
+
+2. Open the app at `http://localhost:4200` (default Angular port).
+
+## Configuration
+- All runtime secrets and provider settings are stored in `backend/.env`. Keep it out of source control.
+- The repo includes `backend/.env` currently for local convenience; replace values before deploying and ensure `.gitignore` prevents committing secrets.
+
+## API Endpoints (summary)
+- POST `/api/documents/analyze` — multipart upload: `file` (+ optional `tone`) → returns `extractedText`, `summary`, `takeaways`
+- POST `/api/documents/ask` — JSON: `{ "text": "...", "question": "..." }` → returns `{ "answer": "..." }`
+- POST `/api/documents/summarize` — JSON `{ "text": "...", "tone": "executive" }` → returns `{ "summary": ..., "takeaways": [...] }`
+- GET `/api/documents/test` — health check
+
+Example curl (analyze):
+
+```bash
+curl -X POST "http://127.0.0.1:8081/api/documents/analyze" \
+  -F "file=@/path/to/document.pdf" \
+  -F "tone=executive"
+```
+
+## Security & Privacy
+- API keys: keep `AI_PROVIDER_KEY` private. Never commit `.env` to Git. Use environment secrets in CI/CD.
+- Document data: this project is intentionally stateless; documents only live in memory during processing.
+
 
